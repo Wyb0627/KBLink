@@ -40,46 +40,23 @@ args = parser.parse_args()
 os.environ['CUDA_VISIBLE_DEVICES'] = find_gpus(nums=args.gpu_count)  # 必须在import torch前面
 # os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 from util_original import Util
-import transformers
-import tqdm
-import pandas as pd
 import datetime
 import json
 import numpy as np
 import random
 import torch
-import functools
 from transformers import BertTokenizer, BertForSequenceClassification
 from transformers import Trainer, TrainingArguments, EarlyStoppingCallback
-from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import classification_report, precision_score, recall_score, f1_score, accuracy_score, \
     precision_recall_fscore_support
-from sklearn.model_selection import train_test_split
 from dataset_multicol import TableDataset
 from torch.utils.data import Dataset, DataLoader
-# from bert_dmlm import KBLink
-# from bert_dmlm_col_only import KBLink
 from bert_dmlm import KBLink
-from custom_trainer import CustomTrainer, JLTrainer
+from custom_trainer import JLTrainer
 
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# bert_embedder = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=args.label_count).to(
-#  'cuda')
 bert_embedder = KBLink(num_labels=args.label_count, learn_weight=args.learn_weight).to('cuda')
 Tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 total_param = []
-
-'''
-for name, param in bert_embedder.named_parameters():
-    total_param.append([name, param.requires_grad])
-with open('./bert_param.json', mode='w') as file:
-    file.write(json.dumps(total_param, indent=4))
-'''
-
-
-# for name, param in bert_embedder.named_parameters():
-#    if 'bert' in name:
-#       param.requires_grad = False
 
 
 def setup_seed(seed):
@@ -108,15 +85,10 @@ def preprocess_logits(logits, labels):
     print(len(labels))
     logits_0 = torch.unsqueeze(logits[0], 0)
     logits_1 = torch.unsqueeze(logits[1], 0)
-    # print(logits_0.shape)
-    # print(logits_1.shape)
     return (logits_0, logits_1)
 
 
 def compute_metrics(pred, test_dir='', test_dataset=None, end_fix=''):
-    # torch.save(pred, './pred_class')
-    # shape = pred.predictions[0]
-    # prediction_vector = torch.tensor(pred.predictions[0]).view(shape[0] * shape[1], shape[2], shape[3])
     prediction_vector = torch.tensor(pred.predictions[0])
     prediction_list = prediction_vector.tolist()
     logit_list = []
@@ -125,21 +97,7 @@ def compute_metrics(pred, test_dir='', test_dataset=None, end_fix=''):
             if seq[0] == -1:
                 break
             logit_list.append(seq)
-
-    print('logit reshape: {}'.format(len(logit_list)))
-    '''
-    answer_dict = {'label_ids': pred.label_ids.tolist()}
-    answer_list = []
-    for item in pred.predictions:
-        if type(item) is np.ndarray:
-            answer_list.append(item.tolist())
-        else:
-            answer_list.append(item)
-    answer_dict['prediction'] = answer_list
-    with open('./pred_class_list.json', mode='w') as file:
-        file.write(json.dumps(answer_dict, indent=4))
-    '''
-
+    # print('logit reshape: {}'.format(len(logit_list)))
     labels = pred.label_ids
     length_list = []
     for label_list in labels:
@@ -148,17 +106,9 @@ def compute_metrics(pred, test_dir='', test_dataset=None, end_fix=''):
                 break
             length_list.append(label_idx)
     labels = length_list
-
-    # labels = pred.label_ids
-    # print(length_list)
-    print('label_length: {}'.format(len(labels)))
-    # print(len(labels))
-    print('logit shape: {}'.format(torch.tensor(pred.predictions[0]).shape))
-    # print(pred.predictions)
-    # print(len(pred.predictions[1]))
+    # print('label_length: {}'.format(len(labels)))
+    # print('logit shape: {}'.format(torch.tensor(pred.predictions[0]).shape))
     preds = torch.tensor(logit_list).argmax(-1)
-    # print(len(preds))
-    # preds = pred.predictions.argmax(-1)
     precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='weighted')
     _, _, f1_macro, _ = precision_recall_fscore_support(labels, preds, average='macro')
     acc = accuracy_score(labels, preds)
@@ -213,25 +163,14 @@ def start_train(train_set, eval_set, end_fix, end_fix_2):
         eval_accumulation_steps=20,
         save_total_limit=3,
         seed=3407,
-        logging_dir='./bert_log'  # 存储logs的目录
+        logging_dir='./bert_log'
     )
-    # sigma_param = list(map(id, bert_embedder.sigma))
-    # base_param = filter(lambda x: id(x) not in sigma_param, bert_embedder.parameters())
-    # optim_tuple = (transformers.AdamW(
-    #    params=[{'params': bert_embedder.bert_model_contextual.parameters()},
-    #            {'params': bert_embedder.bert_model.parameters()},
-    #            {'params': bert_embedder.sigma, "lr": 5 * args.lr}],
-    #    lr=args.lr,
-    #    weight_decay=args.lr),None),
     trainer = JLTrainer(
         model=bert_embedder,
         args=training_args,
         train_dataset=train_set,
         eval_dataset=eval_set,
-        # optimizers=optim_tuple,
-        # tokenizer=Tokenizer,
         compute_metrics=compute_metrics,
-        # preprocess_logits_for_metrics=preprocess_logits,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],  # 早停Callback
     )
     trainer.train()
@@ -259,41 +198,23 @@ def load_data(data_list: list):
 if __name__ == '__main__':
     setup_seed(3407)
     set_cpu_num(32)
-    # end_fix = 'iswc_msk'
-    # end_fix_2 = '_jl'
     end_fix = args.end_fix
     end_fix_2 = args.end_fix_2
     print('endfix: {} begin'.format(end_fix + end_fix_2))
-    # label = pd.read_csv(base_dir + '/label.csv')
     start_time = datetime.datetime.now()
     train_dataset = torch.load('./dataset_final/train_dataset_' + end_fix)
     eval_dataset = torch.load('./dataset_final/eval_dataset_' + end_fix)
-    # eval_dataset, _ = torch.utils.data.random_split(eval_dataset_whole,
-    #                                               [16, len(eval_dataset_whole) - 16])
     test_dataset = torch.load('./dataset_final/test_dataset_' + end_fix)
 
     print('Start training!')
     print('length train {}'.format(len(train_dataset)))
     trainer = start_train(train_dataset, eval_dataset, end_fix, end_fix_2)
-    # torch.save(bert_embedder.bert_model_contextual.state_dict(),
-    #          './bert_result_' + end_fix + end_fix_2 + '/bert_state_dict')
-
-    # torch.save(bert_embedder.bert_model.state_dict(), './bert_result' + end_fix + '/bert_state_dict')
     print('endfix: {} finished'.format(end_fix + end_fix_2))
     pred = trainer.predict(test_dataset)
     for name, value in bert_embedder.state_dict().items():
         if name == 'sigma':
             print('Name: {}, Value: {}'.format(name, value))
             break
-    # metrics = compute_metrics(pred, test_dir='./bert_result_' + end_fix + end_fix_2 + '/', test_dataset=test_dataset,
-    #                         end_fix=end_fix_2)
     metrics = compute_metrics(pred)
     print('Prediction Finished')
     print(metrics)
-    # for name, parameter in bert_embedder.named_parameters():
-    #    print('{}'.format(name))
-
-    # if not args.end_fix_2:
-
-    # print('Start testing!')
-    # test(test_dataset)

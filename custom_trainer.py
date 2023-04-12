@@ -21,16 +21,11 @@ class CustomTrainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False, alpha=0.1, beta=0.9):
         outputs = model(inputs)
-        # print(outputs['bert_output'].hidden_states[0].shape)
-        # print(outputs['bert_output'].hidden_states[1].shape)
         msk_bert_gt = torch.squeeze(outputs['bert_gt_output'].hidden_states[0][:, 1, :])
         msk_contextual = torch.squeeze(outputs['bert_contextual_output'].hidden_states[0][:, 1, :])
         classfi_loss = outputs['bert_contextual_output'].loss
-        # classfi_loss = self.loss_func(self.softmax(outputs['bert_contextual_output'].logits), inputs['labels'])
         dmlm_loss = self.dmlm_loss(msk_bert_gt, msk_contextual)
         total_loss = alpha * dmlm_loss + beta * classfi_loss
-        # total_loss = classfi_loss
-        # print(outputs['bert_contextual_output'].logits.shape)
         return (total_loss, {'predictions': outputs['bert_contextual_output'].logits,
                              'label_ids': inputs['labels']}) if return_outputs else total_loss
 
@@ -41,9 +36,7 @@ class JLTrainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False):
         outputs = model(inputs)
-        # print(outputs['label_ids'].shape)
         if return_outputs:
-            # print(outputs['predictions'])
             return outputs['total_loss'], {'predictions': outputs['predictions'], 'label_ids': outputs['label_ids']}
         else:
             return outputs['total_loss']

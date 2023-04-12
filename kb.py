@@ -7,7 +7,6 @@ import itertools
 import string
 import Levenshtein
 import unicodedata
-from qwikidata.sparql import return_sparql_query_results
 
 es = Elasticsearch(['localhost'], port=9201)
 doc_type_name = 'wiki_entities'
@@ -15,18 +14,6 @@ index_name = 'wikidata_entity_linking'
 month = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sept', 'oct', 'nov', 'dec',
          'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november',
          'december']
-
-
-def get_max_sim(term, candidates, size):
-    total = []
-    total_sorted = []
-    if term:
-        for l in candidates:
-            if l:
-                sim = levenshtein_similarity(term, l['_source']['label'])
-                total.append([sim, l])
-        total_sorted = sorted(total, key=(lambda x: x[0]), reverse=True)
-    return total_sorted[:size]
 
 
 def remove_brackets(s):
@@ -243,17 +230,6 @@ def find_common_type(linked_cell: list, threshold: float = 0.5):
 
 def inter(a, b):
     return list(set(a).intersection(set(b)))
-
-
-def link_KB_wikidata():
-    query_string = """
-            SELECT *
-             WHERE {
-              ?WDid (wdt:P279)* wd:Q4022
-            }"""
-    res = return_sparql_query_results(query_string)
-    for row in res["results"]["bindings"]:
-        print(row["yourFieldName"]["value"])
 
 
 def link_KB(dataset: dict):

@@ -1,9 +1,7 @@
-import os
 from torch.utils.data import Dataset, DataLoader
 from transformers import BertTokenizer
 import torch
 import torch.nn.functional as func
-import pandas as pd
 import json
 import numpy as np
 import unicodedata
@@ -85,17 +83,7 @@ class TableDataset(Dataset):
                                 if filter_out and ct_dict['filter']:
                                     candidate_type.append('[PAD]')
                                     continue
-                                '''
-                                # 多个pad填充
-                                ct_label_cut = ct_dict['ct_label'].split()[:ct_length] 
-                                # while len(ct_label_cut) < ct_length:
-                                #   ct_label_cut.append('[PAD]')
-                                ct_label_cut.append('[SEP]')
-                                candidate_type += ' '.join(ct_label_cut)
-                                '''
                                 candidate_type.append(ct_dict['ct_label'])
-                                # print('******************************')
-                                # print(candidate_type)``
 
                         temp_list.extend(candidate_type)
                         temp_list.append('[SEP]')
@@ -217,7 +205,6 @@ class TableDataset(Dataset):
         if self.use_mask:
             for key, val in self.encodings_msk[idx].items():
                 item[key] = val
-            # item['cls_idx_msk'] = self.cls_idx_msk[idx]
         item['cls_idx'] = self.cls_idx[idx]
         item['labels'] = torch.tensor(self.labels[idx])
         item['table_id'] = self.table_id[idx]

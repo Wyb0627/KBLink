@@ -2,7 +2,6 @@ import pandas as pd
 from pathlib import Path
 import json
 import numpy as np
-import os
 import torch
 import tqdm
 
