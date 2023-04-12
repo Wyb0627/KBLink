@@ -245,14 +245,14 @@ if __name__ == '__main__':
     # parser.add_argument("--train_csv_dir", help="input csv dir for training", default="./data/ft_cell/train_csv")
     parser.add_argument("--dataset_name", default='iswc')
     parser.add_argument("--propotion", type=float, default=1.0)
-    parser.add_argument("--filter_size", help="row filter", default='all')
+    parser.add_argument("--filter_size", help="row filter", default='25')
     parser.add_argument("--model", help="row filter", default='KBLink')
-    parser.add_argument("--max_length", help="row filter", type=int, default=32)
+    parser.add_argument("--max_length", help="row filter", type=int, default=64)
     args = parser.parse_args()
     filter_size = args.filter_size
     dataset_name = args.dataset_name
     model = args.model
-    endfix = '{}_712_row_{}_{}_{}'.format(dataset_name, filter_size, model, args.max_length)
+    endfix = '{}_{}_{}_{}'.format(dataset_name, filter_size, model, args.max_length)
     print('endfix: {}_{} begin'.format(endfix, str(args.propotion)))
     with open('./data_final/processed_dataset_{}_{}.json'.format(dataset_name, filter_size), 'r') as file:
         dataset = json.load(file)
