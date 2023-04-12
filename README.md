@@ -3,6 +3,7 @@ Code of paper: KBLink: A column type annotation method that combines Knowledge G
 
 ##### Main Requirements:
 Python==3.6  
+jsonlines
 pytorch=1.10.2  
 spacy==3.2.4  
 transformers==4.18.0  
