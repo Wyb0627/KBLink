@@ -35,13 +35,13 @@ python dataset_multicol.py --dataset_name <iswc or viznet in our case>
 
 Start training and validating:
 ```
-python main.py 
-    --gpu_count <number of GPU used> 
-    --label_count <number of labels 275 for semtab2019>  
-    --lr <learning rate> 
-    --epochs <num of epochs>
-    --batch_size <batch size>
-    --dataset_name <iswc or viznet in our case>
+python main.py \
+    --gpu_count <number of GPU used> \
+    --label_count <number of labels 275 for semtab2019> \
+    --lr <learning rate> \
+    --epochs <num of epochs> \
+    --batch_size <batch size> \
+    --dataset_name <iswc or viznet in our case> \
     --learn_weight <adaptly learn the weight between loss>
 ```
 
