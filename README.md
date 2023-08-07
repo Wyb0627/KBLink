@@ -37,7 +37,7 @@ Start training and validating:
 ```
 python main.py \
     --gpu_count <number of GPU used> \
-    --label_count <number of labels 275 for semtab2019> \
+    --label_count <number of labels, 275 for semtab, 77 for Viznet> \
     --lr <learning rate> \
     --epochs <num of epochs> \
     --batch_size <batch size> \
