@@ -45,7 +45,7 @@ python main.py \
     --learn_weight <adaptly learn the weight between loss>
 ```
 
-#### Acknowledgment:
+### Acknowledgment:
 Some of our code is from the [Tabbie code base](https://github.com/SFIG611/tabbie). We sincerely thank them for their contributions.
 
 
