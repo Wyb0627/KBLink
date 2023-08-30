@@ -46,15 +46,24 @@ python dataset_multicol.py --dataset_name <iswc or viznet in our case>
 Start training and validating:
 ```
 python main.py \
-    --gpu_count <number of GPU used> \
-    --label_count <number of labels, 275 for semtab, 77 for Viznet> \
+    --gpu_count <How many GPU used, automatically selected, if --manual_GPU, is the number of GPU used> \
     --lr <learning rate> \
-    --epochs <num of epochs> \
     --batch_size <batch size> \
     --dataset_name <iswc or viznet in our case> \
-    --learn_weight <adaptly learn the weight between loss>
+    --learn_weight <adaptly learn the weight between loss> \
+    --LM <Language model used, default bert, deberta and roberta are also supported> \
+    --seed <Random seed> \
+    --manual_GPU <Whether to manually select GPU to use> \
+    --exp_name <experiment name used iswc if semtab dataset, viznet if viznet dataset>
 ```
-
+For Semtab:
+```
+python main.py --gpu_count 1 --end_fix iswc --learn_weight
+```
+For Viznet:
+```
+python main.py --gpu_count 1 --end_fix viznet --learn_weight
+```
 ### Acknowledgment:
 Some of our code is from the [Tabbie code base](https://github.com/SFIG611/tabbie). We sincerely thank them for their contributions.
 
