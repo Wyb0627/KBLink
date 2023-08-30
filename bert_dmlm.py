@@ -1,22 +1,46 @@
-from transformers import BertTokenizer, BertModel, BertConfig, BertForSequenceClassification
+from transformers import BertTokenizer, BertModel
+from transformers import RobertaTokenizer, RobertaModel
+from transformers import DebertaTokenizer, DebertaModel
+from transformers import BartTokenizer, BartModel
 import torch
+# import torch_scatter
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import json
+from operator import itemgetter
 
 
 class KBLink(nn.Module):
     def __init__(self, num_labels=77, model_name="bert-base-uncased",
-                 learn_weight=False):  # "deepset/bert-base-cased-squad2"
+                 learn_weight=False, LM='bert'):
         super(KBLink, self).__init__()
         self.model_name = model_name
-        self.tokenizer = BertTokenizer.from_pretrained(self.model_name)
-        self.bert_model_contextual = BertModel.from_pretrained(self.model_name)
-        self.bert_model = BertModel.from_pretrained(self.model_name)
+        self.LM = LM
+        if self.LM == 'bert':
+            self.tokenizer = BertTokenizer.from_pretrained(self.model_name)
+            self.bert_model_contextual = BertModel.from_pretrained(self.model_name)
+            self.bert_model = BertModel.from_pretrained(self.model_name)
+        elif self.LM == 'roberta':
+            self.model_name = 'roberta-base'
+            self.tokenizer = RobertaTokenizer.from_pretrained(self.model_name)
+            self.bert_model_contextual = RobertaModel.from_pretrained(self.model_name)
+            self.bert_model = RobertaModel.from_pretrained(self.model_name)
+        elif self.LM == 'deberta':
+            self.model_name = 'microsoft/deberta-base'
+            self.tokenizer = DebertaTokenizer.from_pretrained(self.model_name)
+            self.bert_model_contextual = DebertaModel.from_pretrained(self.model_name)
+            self.bert_model = DebertaModel.from_pretrained(self.model_name)
+        elif self.LM == 'bart':
+            self.model_name = 'facebook/bart-base'
+            self.tokenizer = BartTokenizer.from_pretrained(self.model_name)
+            self.bert_model_contextual = BartModel.from_pretrained(self.model_name)
+            self.bert_model = BartModel.from_pretrained(self.model_name)
         self.bert_model.eval()
         self.counter = 0
         self.learn_weight = learn_weight
         self.projector = nn.Linear(768, len(self.tokenizer))
+        self.projector_gt = nn.Linear(768, len(self.tokenizer))
         self.classifier = nn.Linear(768, num_labels)
         self.loss_func = nn.CrossEntropyLoss(reduction='sum')
         self.dropout = nn.Dropout(0.1)
@@ -28,6 +52,7 @@ class KBLink(nn.Module):
             grad = False
         self.sigma = nn.Parameter(0.5 * torch.ones(2), requires_grad=grad)
         self.log_softmax = nn.LogSoftmax(dim=-1)
+        # self.dropout = nn.Dropout(0.1)
 
     def dmlm_loss(self, softmax_gt, softmax_contextual):
         bert_gt_sum = torch.sum(softmax_gt, dim=-1)
@@ -78,24 +103,20 @@ class KBLink(nn.Module):
             gt_tensor = torch.tensor(gt_label, dtype=torch.long).to('cuda')
             total_gt_tensor = torch.cat((total_gt_tensor, gt_tensor), 0)
             classfi_loss += self.loss_func(prediction, gt_tensor)
-            padded_prediction = F.pad(prediction,
-                                      (0, 0,
-                                       0, 16 - prediction.shape[0]),
-                                      mode='constant',
-                                      value=-1)
+            padded_prediction = F.pad(prediction, (0, 0, 0, 16 - prediction.shape[0]), mode='constant', value=-1)
             total_prediction = torch.cat((total_prediction, torch.unsqueeze(padded_prediction, 0)), 0)
-            total_label = input_data['labels'].tolist()
+            total_label = input_data['labels'].cpu().tolist()
             if self.learn_weight:
                 bert_hidden_states = torch.cat(
-                    (bert_hidden_states, bert_output.hidden_states[0][batch_id, target_msk_idx, :]), 0)
+                    (bert_hidden_states, bert_output.last_hidden_state[batch_id, target_msk_idx, :]), 0)
                 bert_hidden_states_gt = torch.cat(
-                    (bert_hidden_states_gt, bert_gt_output.hidden_states[0][batch_id, target_msk_idx, :]), 0)
+                    (bert_hidden_states_gt, bert_gt_output.last_hidden_state[batch_id, target_msk_idx, :]), 0)
         classfi_loss = classfi_loss / batch_col_count
         if self.learn_weight:
             msk_vector = self.projector(bert_hidden_states)
             msk_vector_gt = self.projector(bert_hidden_states_gt)
-            softmax_gt = self.softmax(0.5 * msk_vector_gt)
-            softmax_contextual = self.dropout(self.log_softmax(0.5 * msk_vector))
+            softmax_gt = self.log_softmax(0.5 * msk_vector_gt)
+            softmax_contextual = self.dropout(self.softmax(0.5 * msk_vector))
             dmlm_loss = self.dmlm_loss(softmax_gt, softmax_contextual)
             total_loss = dmlm_loss / 2 * self.sigma[0].exp() + classfi_loss / 2 * self.sigma[1].exp() + 0.5 * (
                     self.sigma[0] + self.sigma[1])
