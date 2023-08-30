@@ -30,15 +30,15 @@ Filter the knowledge extracted:
 python source_col_filter.py --dataset_name <iswc or viznet in our case> --filter_size <25 in our size>
 ```
 
-The dataset with generated candidate types for these 2 dataset are provided with 25 rows per table:
+The dataset with generated candidate types for these 2 dataset are provided with 25 rows per table, you may download and put into the data folder:
 
 
 [Semtab2019](https://hkustconnect-my.sharepoint.com/:u:/g/personal/ywangnx_connect_ust_hk/EZsDhOj-_WVHqnoC6z4pjLUB_IPISAphcCSsVQwE9_UxGQ?e=fIFagD)
 [Viznet](https://hkustconnect-my.sharepoint.com/:u:/g/personal/ywangnx_connect_ust_hk/EUkie95dLndFoSgXsodC1CsB7X0Z0XlYuTv2ZGvJvixrVw?e=kfQdC6)
 
 
-[Semtab2019 Label](https://hkustconnect-my.sharepoint.com/:u:/g/personal/ywangnx_connect_ust_hk/Edk6OjMqTmJJs_vJUGz4Yh4BMy7Iaw2VMJ28JkKxIA7ezw?e=CGPcNv)
-[Viznet Label](https://hkustconnect-my.sharepoint.com/:u:/g/personal/ywangnx_connect_ust_hk/EeEYQaK8RkFNtMLqYE1DDBcBbubN9pSmzjHuQxvUTKRmUw?e=4ThT5X)
+[Semtab2019_Label](https://hkustconnect-my.sharepoint.com/:u:/g/personal/ywangnx_connect_ust_hk/Edk6OjMqTmJJs_vJUGz4Yh4BMy7Iaw2VMJ28JkKxIA7ezw?e=CGPcNv)
+[Viznet_Label](https://hkustconnect-my.sharepoint.com/:u:/g/personal/ywangnx_connect_ust_hk/EeEYQaK8RkFNtMLqYE1DDBcBbubN9pSmzjHuQxvUTKRmUw?e=4ThT5X)
 
 You may use the above-provided files to directly run the dataset_multicol.py to avoid linking to KG by yourself.
 
