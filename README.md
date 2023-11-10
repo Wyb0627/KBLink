@@ -22,7 +22,7 @@ The linked KG knowledge for these 2 datasets is provided with size of 10 per cel
 [Semtab2019](https://hkustconnect-my.sharepoint.com/:u:/g/personal/ywangnx_connect_ust_hk/EccsTGgIbO9Mpz-EgKuInbcBypnZEQEc7EVGLVF13MIxRw?e=Bf3pS7)
 [Viznet](https://hkustconnect-my.sharepoint.com/:u:/g/personal/ywangnx_connect_ust_hk/EVR1F6SqxJ1EteoBfPb23n4BR_ZJAO-Vs4lAGflxLMcSjA?e=WRF7Am)
 
-
+We used the Elasticsearch to index the Wikidata KG. You may refer [here](https://github.com/Zinc-30/wikidata_es_index) to set up Wikidata on Elasticsearch.
 
 Filter the knowledge extracted:
 
