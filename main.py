@@ -29,6 +29,7 @@ parser = ArgumentParser()
 parser.add_argument("--gpu_count", help="How many GPU to use", type=int, default=1)
 parser.add_argument("--label_count", help="How many labels in the dataset", type=int, default=275)
 parser.add_argument("--lr", help="Learning rate", type=float, default=3e-5)
+parser.add_argument("--drop_out", help="Drop out rate", type=float, default=0.2)
 parser.add_argument("--epochs", help="Epochs", type=int, default=50)
 parser.add_argument("--learn_weight", help="Whether to learn weight", action="store_true")
 parser.add_argument("--batch_size", help="Batch size", type=int, default=16)
@@ -36,6 +37,7 @@ parser.add_argument("--exp_name", help="experiment name", type=str, default="isw
 parser.add_argument("--LM", type=str, default="bert")
 parser.add_argument("--seed", type=int, default=3407)
 parser.add_argument("--manual_GPU", action="store_true")
+parser.add_argument("--feature_vec", action="store_true")
 parser.add_argument("--gpu_num", help="If manually assign GPU", type=int, default=1)
 args = parser.parse_args()
 
@@ -68,7 +70,11 @@ if 'iswc' in args.exp_name:
 else:
     label_count = 77
     epochs = 20
-bert_embedder = KBLink(num_labels=label_count, learn_weight=args.learn_weight, LM=args.LM).to('cuda')
+bert_embedder = KBLink(num_labels=label_count,
+                       learn_weight=args.learn_weight,
+                       LM=args.LM,
+                       feature_vec=args.feature_vec,
+                       drop_out=args.drop_out).to('cuda')
 Tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 total_param = []
 

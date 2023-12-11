@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from util import Util
+from util_original import Util
 import datetime
 import torch
 import numpy as np
@@ -14,10 +14,11 @@ import operator
 from itertools import combinations
 import networkx as nx
 from argparse import ArgumentParser
+import requests
 
 parser = ArgumentParser()
 # parser.add_argument("--train_csv_dir", help="input csv dir for training", default="./data/ft_cell/train_csv")
-parser.add_argument("--filter", help="row filter", type=int, default=100000)
+parser.add_argument("--filter", help="row filter", type=int, default=25)
 parser.add_argument("--dataset", help="dataset", type=str, default='iswc')
 args = parser.parse_args()
 
@@ -46,7 +47,7 @@ def get_key(dict, value):
     return [k for k, v in dict.items() if v == value]
 
 
-def calculate_filter(col_pair_0, col_pair_1, G, filtered_linkage, filtered_linkage_total_by_col, link_dict):
+def calculate_filter(col_pair_0, col_pair_1, filtered_linkage, filtered_linkage_total_by_col, link_dict):
     # 初始化所有dict
     match_id = {}
     if col_pair_0['col_idx'] not in filtered_linkage:  # 如果该行不在dict中，创建该行dict
@@ -68,7 +69,7 @@ def calculate_filter(col_pair_0, col_pair_1, G, filtered_linkage, filtered_linka
     for match1 in col_pair_1['match']:
         for edge in match1['_source']['edges']:
             if 'Q' not in edge[1] or edge[1] == 'Q4167410':
-                G.add_node(match1['_source']['id'])
+                # G.add_node(match1['_source']['id'])
                 continue
             elif edge[1] in match_id:
                 add_to_dict(filtered_linkage[col_pair_0['col_idx']], edge[1])
@@ -89,7 +90,7 @@ def calculate_filter(col_pair_0, col_pair_1, G, filtered_linkage, filtered_linka
                         add_to_dict(filtered_linkage[col_pair_1['col_idx']], edge_entity[1])
                         add_to_dict(filtered_linkage_total_by_col[col_pair_1['col_idx']], edge_entity[1])
 
-                G.add_edge(match1['_source']['id'], edge[1])
+                # G.add_edge(match1['_source']['id'], edge[1])
 
 
 def add_to_dict(target_dict: dict, element, add_num=1):
@@ -106,7 +107,7 @@ def source_col_filter(dataset: dict, top_k_dict: dict, k: int = 5):
         total_dict = {}
         linkage_dict = {}
         filtered_linkage_total = []
-        total_G = nx.DiGraph()
+        # total_G = nx.DiGraph()
         total_graph_list_row = []
         col_pr_id_dict = []
         filtered_linkage_total_by_col = {}
@@ -118,7 +119,7 @@ def source_col_filter(dataset: dict, top_k_dict: dict, k: int = 5):
             # for row in table['linked_cell'].values():
             col_id_dict_row = {}
             filtered_linkage = {}
-            G = nx.DiGraph()
+            # G = nx.DiGraph()
             for col_pairs in list(combinations(row, 2)):
                 if 'match' in col_pairs[0]:
                     for match0 in col_pairs[0]['match']:
@@ -137,18 +138,19 @@ def source_col_filter(dataset: dict, top_k_dict: dict, k: int = 5):
                     if col_pairs[0]['col_idx'] not in col_id_dict_row:
                         col_id_dict_row[int(col_pairs[0]['col_idx'])] = []
                         for item0 in col_pairs[0]['match']:
-                            G.add_node(item0['_source']['id'])
+                            # G.add_node(item0['_source']['id'])
                             col_id_dict_row[int(col_pairs[0]['col_idx'])].append(item0['_source']['id'])
-                    calculate_filter(col_pairs[0], col_pairs[1], G, filtered_linkage,
+                    calculate_filter(col_pairs[0], col_pairs[1], filtered_linkage,
                                      filtered_linkage_total_by_col, linkage_dict)
                 if col_pairs[1]['col_idx'] in table['predicted_column_idx']:
                     if col_pairs[1]['col_idx'] not in col_id_dict_row:
                         col_id_dict_row[int(col_pairs[1]['col_idx'])] = []
                         for item1 in col_pairs[1]['match']:
-                            G.add_node(item1['_source']['id'])
+                            # G.add_node(item1['_source']['id'])
                             col_id_dict_row[int(col_pairs[1]['col_idx'])].append(item1['_source']['id'])
-                    calculate_filter(col_pairs[1], col_pairs[0], G, filtered_linkage,
+                    calculate_filter(col_pairs[1], col_pairs[0], filtered_linkage,
                                      filtered_linkage_total_by_col, linkage_dict)
+            '''
             pr_per_row = nx.pagerank(G, alpha=0.85)
             col_pr_id_dict_row = {}
             for key, value in col_id_dict_row.items():
@@ -158,6 +160,7 @@ def source_col_filter(dataset: dict, top_k_dict: dict, k: int = 5):
                         continue
                     temp_dict[wiki_id] = pr_per_row[wiki_id]
                 col_pr_id_dict_row[key] = sorted(temp_dict.items(), key=lambda x: x[1], reverse=True)
+            '''
             for col_idx, value in filtered_linkage.items():
                 if not value:
                     for col in row:
@@ -176,19 +179,19 @@ def source_col_filter(dataset: dict, top_k_dict: dict, k: int = 5):
                         total_index_count[link_id] += link_count + 1
                     else:
                         total_index_count[link_id] += 1
-            col_pr_id_dict.append(col_pr_id_dict_row)
+            # col_pr_id_dict.append(col_pr_id_dict_row)
             filtered_linkage_total.append(filtered_linkage)
-            total_graph_list_row.append(G)
-            total_G.add_nodes_from(G.nodes)
-            total_G.add_edges_from(G.edges)
+            # total_graph_list_row.append(G)
+            # total_G.add_nodes_from(G.nodes)
+            # total_G.add_edges_from(G.edges)
         total_dict['total_index_count'] = total_index_count
         # total_dict['table_pr_per_col'] = convert_pr_to_per_col(col_pr_id_dict)
         # total_dict['total_G'] = total_G
-        total_dict['total_graph_list'] = total_graph_list_row
+        # total_dict['total_graph_list'] = total_graph_list_row
         total_dict['filtered_linkage_total'] = filtered_linkage_total
         total_dict['filtered_linkage_total_by_col'] = filtered_linkage_total_by_col
         total_dict['table_idx'] = table_index_dict
-        total_dict['table_pr_per_row'] = col_pr_id_dict
+        # total_dict['table_pr_per_row'] = col_pr_id_dict
         total_dict['top_k_index'] = top_k_info
         total_dict['linkage_dict'] = linkage_dict
         total_dict_list[idx] = total_dict
@@ -282,7 +285,7 @@ def calculate_max_flow_weight_from_pr(total_dict_list: list):
                 degree_0.append(node)
         for node in degree_0:
             graph.remove_node(node)
-        pr = nx.pagerank(graph, alpha=0.85)
+        # pr = nx.pagerank(graph, alpha=0.85)
         graph.add_node('S')
         graph.add_node('T')
         # for node,pr_score in pr.items():
@@ -300,6 +303,7 @@ def calculate_max_flow(total_dict_list: dict, dataset: dict, k=3, connect_KB=Fal
             # s_set, t_set = set(), set()
             linkage_dict = table['linkage_dict'][col_idx]
             graph = nx.DiGraph()
+            col_ct_dict = {}
             for wiki_id, overlap_count in col.items():
                 if wiki_id not in table['table_idx']:
                     continue
@@ -310,6 +314,7 @@ def calculate_max_flow(total_dict_list: dict, dataset: dict, k=3, connect_KB=Fal
                     else:
                         if wiki_id not in overlap_score or edges[1] not in overlap_score:
                             continue
+                        col_ct_dict[wiki_id] = overlap_score[wiki_id]
                         # s_set.add(wiki_id)
                         # t_set.add(edges[1])
                         graph.add_edge(wiki_id, edges[1])
@@ -341,7 +346,8 @@ def calculate_max_flow(total_dict_list: dict, dataset: dict, k=3, connect_KB=Fal
                 if 'T' in f_dict:
                     if f_dict['T'] > 0:
                         answer_dict[candidate_type] = f_dict['T']
-            answer_dict_sorted = sorted(answer_dict.items(), key=lambda x: x[1], reverse=True)
+            # answer_dict_sorted = sorted(answer_dict.items(), key=lambda x: x[1], reverse=True)
+            answer_dict_sorted = sorted(col_ct_dict.items(), key=lambda x: x[1], reverse=True)
             # print(table['table_idx']['Q482994'])
             flow_per_col[col_idx] = {'flow_value': flow_value,
                                      'flow_dict': flow_dict,
@@ -371,14 +377,15 @@ def calculate_max_flow(total_dict_list: dict, dataset: dict, k=3, connect_KB=Fal
                     filter_out = False
                     entity_label = kb.search(tup[0])
                     # print('Start nlp')
-                    doc = nlp(entity_label)
-                    for ent in doc.ents:
-                        if ent.label_ in ['PERSON', 'DATE']:
-                            filter_out = True
-                            break
-                    ct_connected_per_col[col_num].append({'ct_label': entity_label,
-                                                          'over_lap_score': tup[1],
-                                                          'filter': filter_out})
+                    if entity_label:
+                        doc = nlp(entity_label)
+                        for ent in doc.ents:
+                            if ent.label_ in ['PERSON', 'DATE']:
+                                filter_out = True
+                                break
+                        ct_connected_per_col[col_num].append({'ct_label': entity_label,
+                                                              'over_lap_score': tup[1],
+                                                              'filter': filter_out})
                     # print('end nlp')
             dataset[table_idx]['candidate_type_top_k'] = ct_connected_per_col
 
@@ -393,12 +400,12 @@ def apply_filter(dataset: dict, filter_size: int):
             linked_cell_new, col_list_dict_new, row_list_dict_new = {}, {}, {}
             for row_idx in table['top_k_sequence']:
                 linked_cell_new[str(row_idx)] = table['linked_cell'][str(row_idx)]
-                row_list_dict_new[str(row_idx)] = table['row_list_dict'][str(row_idx)]
+                row_list_dict_new[str(row_idx)] = table['cell'][int(row_idx)]
                 for cols in table['col_list_dict'].keys():
                     if cols not in col_list_dict_new:
                         col_list_dict_new[cols] = []
                     try:
-                        col_list_dict_new[cols].append(table['row_list_dict'][str(row_idx)][int(cols)])
+                        col_list_dict_new[cols].append(table['cell'][int(row_idx)][int(cols)])
                     except IndexError:
                         print(table['row_list_dict'][str(row_idx)])
                         print('Col {}'.format(cols))
@@ -409,14 +416,107 @@ def apply_filter(dataset: dict, filter_size: int):
     return dataset
 
 
+def proecess_neighbor(dataset: dict, mode='head', filter_size=25):
+    total_count = 0
+    linked_count = 0
+    for table_idx, table in tqdm.tqdm(dataset.items(), desc='process_neighbor'):
+        total_count += len(table['label'])
+        linked_vec = {}
+        count_dict = {}
+        if 'linked_cell' in table:
+            for row_idx, linked_list_for_row in table['linked_cell'].items():
+                for linked_dict in linked_list_for_row:
+                    if 'match' not in linked_dict:
+                        continue
+                    if not linked_dict['match']:
+                        continue
+                    if linked_dict['col_idx'] not in linked_vec:
+                        linked_vec[linked_dict['col_idx']] = []
+                        count_dict[linked_dict['col_idx']] = 0
+                    if count_dict[linked_dict['col_idx']] == filter_size:
+                        continue
+                    neighbor = look_up_neighbor(linked_dict['match'][0]["_source"])
+                    if neighbor:
+                        linked_vec[linked_dict['col_idx']].append(neighbor)
+                        count_dict[linked_dict['col_idx']] += 1
+                        if mode == 'head':
+                            break
+
+            linked_count += len(linked_vec)
+        table['linked_cell'] = linked_vec
+
+    print('Link count:{}, Total: {}, propotion: {}'.format(linked_count, total_count, linked_count / total_count))
+    return dataset
+
+
+def http_lookup(key: str):
+    url = "https://www.wikidata.org/w/api.php"
+    if isinstance(key, list):
+        if key:
+            key = key[0]
+        else:
+            return ''
+    params = {
+        'action': 'wbgetentities',
+        'format': 'json',
+        'ids': key,  # 搜索文本
+        'language': 'en',  # 查询语言（英文）
+    }
+
+    # 访问
+    r = requests.get(url=url, params=params).json()
+    try:
+        if not r['success']:
+            return ''
+        elif 'entities' in r:
+            # print(key)
+            return r['entities'][key]['labels']['en']['value']
+            # return r['search'][0]['label']
+        else:
+            # print(list(r['search'][0].keys()))
+            return ''
+    except KeyError:
+        return ''
+
+
+def look_up_neighbor(entity: dict):
+    neighbor_list = []
+    if entity['types']:
+        if isinstance(entity['types'], list):
+            entity['types'] = entity['types'][0]
+        label_edge = kb.search(entity['types'])
+        if label_edge:
+            neighbor_list.append(entity['label'] + ' types ' + label_edge)
+    for edge in entity['edges']:
+        if isinstance(edge[1], list):
+            entity_id = edge[1][0]
+        else:
+            entity_id = edge[1]
+        if isinstance(edge[0], list):
+            edge_id = edge[0][0]
+        else:
+            edge_id = edge[0]
+        if entity_id == entity['types'] or 'Q' not in entity_id or entity_id == 'Q4167410':
+            continue
+        else:
+            # edge_id, entity_id = edge[0], edge[1]
+            label_edge = kb.search(edge_id)
+            label_entity = kb.search(entity_id)
+            if not label_edge or not label_entity:
+                continue
+            neighbor_list.append(' ' + label_edge + ' ' + label_entity)
+    if neighbor_list:
+        return ' '.join(neighbor_list)
+    else:
+        return ''
+
+
 if __name__ == '__main__':
     setup_seed(0)
     set_cpu_num(32)
     base_dir = './data'
     dataset_name = args.dataset
-    dataset = Util.load_dict(base_dir + '/10_match_with_score_{}.jsonl'.format(dataset_name), 'index')
-    # with open(base_dir + '/wiki_label_to_id_edited_final.json', 'r') as file:
-    #    label_2_id = json.load(file)
+    dataset = Util.load_dict(base_dir + '/10_match_with_score_{}.jsonl'.format(dataset_name))
     print('{} columns in total'.format(len(dataset)))
     filter_size = args.filter
     start_time = datetime.datetime.now()
@@ -429,28 +529,13 @@ if __name__ == '__main__':
     ten_dict = {}
     if filter_size == None:
         filter_size = 'all'
-    for i in range(10):
+    for i in range(3):
         ten_dict[i] = dataset[i]
     if filter_size >= 10000:
         filter_size = 'all'
-    with open('./data_final/processed_dataset_10_{}_{}.json'.format(dataset_name, filter_size), mode='w') as file:
+    with open('./data_final/processed_dataset_3_{}_{}_filter.json'.format(dataset_name, filter_size), mode='w') as file:
         file.write(json.dumps(ten_dict, indent=4))
-    with open('./data_final/processed_dataset_{}_{}.json'.format(dataset_name, filter_size), mode='w') as file:
+    with open('./data_final/processed_dataset_{}_{}_no_filter.json'.format(dataset_name, filter_size), mode='w') as file:
         file.write(json.dumps(dataset, indent=4))
     print('Time cost: {}'.format(end_time - start_time))
-
-    '''
-    acc_list = []
-    for k in range(5, 160, 5):
-        total_dict_list = source_col_filter(dataset, answer_dict, k)
-        acc = calculate_acc(total_dict_list, dataset, label_2_id)
-        acc_list.append(acc)
-    X = [i for i in range(5, 160, 5)]
-    plt.plot(X, acc_list, 's-', color='r', label="Accuracy")
-    plt.xlabel("K")  # 横坐标名字
-    plt.ylabel("Acc")
-    plt.legend(loc="best")
-    plt.savefig('./graph/acc_top_k.png')
-    plt.show()
-    '''
     print('Finish')
