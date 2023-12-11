@@ -24,10 +24,22 @@ The linked KG knowledge for these 2 datasets is provided with size of 10 per cel
 
 We used the Elasticsearch to index the Wikidata KG. You may refer [here](https://github.com/Zinc-30/wikidata_es_index) to set up Wikidata on Elasticsearch.
 
+Link tables to KG:
+
+```
+python find_near.py 
+```
+
 Filter the knowledge extracted:
 
 ```
 python source_col_filter.py --dataset_name <iswc or viznet in our case> --filter_size <25 in our size>
+```
+
+Generate the feature vectors:
+
+```
+python feature_vec.py --dataset <iswc or viznet in our case>
 ```
 
 The dataset with generated candidate types for these 2 dataset are provided with 25 rows per table, you may download and put into the data folder:
@@ -59,6 +71,8 @@ python main.py \
     --seed <Random seed> \
     --manual_GPU <Whether to manually select GPU to use> \
     --exp_name <experiment name used iswc if semtab dataset, viznet if viznet dataset>
+    --feature_vec <Whether to use feature vector for the model>
+    --drop_out <Set to 0.1 if on SemTab dataset, 0.2 for default>
 ```
 For Semtab:
 ```
