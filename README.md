@@ -36,11 +36,7 @@ Filter the knowledge extracted:
 python source_col_filter.py --dataset_name <iswc or viznet in our case> --filter_size <25 in our size>
 ```
 
-Generate the feature vectors:
 
-```
-python feature_vec.py --dataset <iswc or viznet in our case>
-```
 
 The dataset with generated candidate types for these 2 dataset are provided with 25 rows per table, you may download and put into the data folder:
 
@@ -52,7 +48,13 @@ The dataset with generated candidate types for these 2 dataset are provided with
 [Semtab2019_Label](https://hkustconnect-my.sharepoint.com/:u:/g/personal/ywangnx_connect_ust_hk/Edk6OjMqTmJJs_vJUGz4Yh4BMy7Iaw2VMJ28JkKxIA7ezw?e=CGPcNv)
 [Viznet_Label](https://hkustconnect-my.sharepoint.com/:u:/g/personal/ywangnx_connect_ust_hk/EeEYQaK8RkFNtMLqYE1DDBcBbubN9pSmzjHuQxvUTKRmUw?e=4ThT5X)
 
-You may use the above-provided files to directly run the dataset_multicol.py to avoid linking to KG by yourself.
+You may use the above-provided files to skip the previous steps.
+
+Generate the feature vectors:
+
+```
+python feature_vec.py --dataset <iswc or viznet in our case>
+```
 
 Construct dataset:
 ```
