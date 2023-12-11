@@ -1,5 +1,5 @@
-# KBLink
-Code of paper: KBLink: A column type annotation method that combines Knowledge Graph and pre-trained language model
+# KGLink
+Code of paper: KGLink: A column type annotation method that combines Knowledge Graph and pre-trained language model
 
 ##### Main Requirements:
 Python==3.6  
