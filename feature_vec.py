@@ -4,7 +4,7 @@ import json
 from argparse import ArgumentParser
 
 
-def proecess_neighbor(dataset: dict, mode='head', filter_size=25):
+def generate_feature_vec(dataset: dict, mode='head', filter_size=25):
     total_count = 0
     linked_count = 0
     for table_idx, table in tqdm.tqdm(dataset.items(), desc='process_neighbor'):
@@ -76,21 +76,25 @@ def look_up_neighbor(entity: dict):
         return ''
 
 
-parser = ArgumentParser()
-# parser.add_argument("--train_csv_dir", help="input csv dir for training", default="./data/ft_cell/train_csv")
-parser.add_argument("--filter", help="row filter", type=str, default=25)
-parser.add_argument("--dataset", help="dataset", type=str, default='iswc')
-args = parser.parse_args()
-dataset_name = args.dataset
-filter_size = args.filter
-print('Start to read: processed_dataset_{}_{}_filter.json'.format(dataset_name, filter_size))
-with open('./data_final/processed_dataset_{}_{}_no_filter.json'.format(dataset_name, filter_size), 'r') as file:
-    dataset = json.load(file)
-ten_dict = {}
-if filter_size == 'all':
-    filter_size_input = 99999
-else:
-    filter_size_input = int(filter_size)
-dataset = proecess_neighbor(dataset, mode='all', filter_size=filter_size_input)
-with open('./data_final/processed_dataset_{}_{}_no_filter.json'.format(dataset_name, filter_size), mode='w') as file:
-    file.write(json.dumps(dataset, indent=4))
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    # parser.add_argument("--train_csv_dir", help="input csv dir for training", default="./data/ft_cell/train_csv")
+    parser.add_argument("--filter", help="row filter", type=str, default=25)
+    parser.add_argument("--dataset", help="dataset", type=str, default='iswc')
+    args = parser.parse_args()
+    dataset_name = args.dataset
+    filter_size = args.filter
+
+    print('Start to read: processed_dataset_{}_{}.json'.format(dataset_name, filter_size))
+    with open('./data_final/processed_dataset_{}_{}.json'.format(dataset_name, filter_size), 'r') as file:
+        dataset = json.load(file)
+    ten_dict = {}
+    if filter_size == 'all':
+        filter_size_input = 99999
+    else:
+        filter_size_input = int(filter_size)
+    dataset = generate_feature_vec(dataset, mode='all', filter_size=filter_size_input)
+    for i in range(3):
+        ten_dict[i] = dataset[str(i)]
+    with open('./data_final/processed_dataset_{}_{}.json'.format(dataset_name, filter_size), mode='w') as file:
+        file.write(json.dumps(dataset, indent=4))

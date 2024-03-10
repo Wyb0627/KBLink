@@ -15,7 +15,7 @@ from itertools import combinations
 import networkx as nx
 from argparse import ArgumentParser
 import requests
-from feature_vec import proecess_neighbor
+from feature_vec import generate_feature_vec
 
 parser = ArgumentParser()
 # parser.add_argument("--train_csv_dir", help="input csv dir for training", default="./data/ft_cell/train_csv")
@@ -49,9 +49,8 @@ def get_key(dict, value):
 
 
 def calculate_filter(col_pair_0, col_pair_1, filtered_linkage, filtered_linkage_total_by_col, link_dict):
-    # 初始化所有dict
     match_id = {}
-    if col_pair_0['col_idx'] not in filtered_linkage:  # 如果该行不在dict中，创建该行dict
+    if col_pair_0['col_idx'] not in filtered_linkage:
         filtered_linkage[col_pair_0['col_idx']] = {}
     if col_pair_0['col_idx'] not in filtered_linkage_total_by_col:
         filtered_linkage_total_by_col[col_pair_0['col_idx']] = {}
@@ -430,7 +429,7 @@ if __name__ == '__main__':
     total_dict_list = filter_num_date(total_dict_list, dataset, connect_KB=True, max_flow=False)
     if filter_size != None:
         dataset = apply_filter(dataset, filter_size)
-    dataset = proecess_neighbor(dataset, mode='all', filter_size=filter_size)
+    dataset = generate_feature_vec(dataset, mode='all', filter_size=filter_size)
     end_time = datetime.datetime.now()
     ten_dict = {}
     if filter_size == None:
