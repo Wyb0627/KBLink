@@ -427,7 +427,7 @@ if __name__ == '__main__':
     start_time = datetime.datetime.now()
     answer_dict = top_k_filter(dataset)
     total_dict_list = source_col_filter(dataset, answer_dict, filter_size)
-    total_dict_list = filter_num_date(total_dict_list, dataset, connect_KB=True, max_flow=True)
+    total_dict_list = filter_num_date(total_dict_list, dataset, connect_KB=True, max_flow=False)
     if filter_size != None:
         dataset = apply_filter(dataset, filter_size)
     dataset = proecess_neighbor(dataset, mode='all', filter_size=filter_size)
