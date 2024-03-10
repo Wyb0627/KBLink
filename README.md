@@ -84,6 +84,9 @@ For Viznet:
 ```
 python main.py --gpu_count 1 --end_fix viznet --learn_weight
 ```
+### Experiment with GPT3
+We also provided the GPT3 version of our model, which substitutes the BERT encoder with GPT3. We placed the codes in the GPT3 folder. You may substitute the open API in gpt3_emb.py to generate embedding with GPT3 and use gpt3.py to run the code.
+
 ### Acknowledgment:
 Some of our code is from the [Tabbie code base](https://github.com/SFIG611/tabbie). We sincerely thank them for their contributions.
 
