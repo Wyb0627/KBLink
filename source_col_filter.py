@@ -15,6 +15,7 @@ from itertools import combinations
 import networkx as nx
 from argparse import ArgumentParser
 import requests
+from feature_vec import proecess_neighbor
 
 parser = ArgumentParser()
 # parser.add_argument("--train_csv_dir", help="input csv dir for training", default="./data/ft_cell/train_csv")
@@ -150,23 +151,10 @@ def source_col_filter(dataset: dict, top_k_dict: dict, k: int = 5):
                             col_id_dict_row[int(col_pairs[1]['col_idx'])].append(item1['_source']['id'])
                     calculate_filter(col_pairs[1], col_pairs[0], filtered_linkage,
                                      filtered_linkage_total_by_col, linkage_dict)
-            '''
-            pr_per_row = nx.pagerank(G, alpha=0.85)
-            col_pr_id_dict_row = {}
-            for key, value in col_id_dict_row.items():
-                temp_dict = {}
-                for wiki_id in value:
-                    if wiki_id not in pr_per_row:
-                        continue
-                    temp_dict[wiki_id] = pr_per_row[wiki_id]
-                col_pr_id_dict_row[key] = sorted(temp_dict.items(), key=lambda x: x[1], reverse=True)
-            '''
             for col_idx, value in filtered_linkage.items():
                 if not value:
                     for col in row:
                         if col['match']:
-                            # filtered_linkage_total_by_col[col_idx][col['match'][0]['_source']['id']] = col['match'][0][
-                            #    '_score']
                             if col['col_idx'] == col_idx:
                                 if col['match']:
                                     value[col['match'][0]['_source']['id']] = col['match'][0]['_score']
@@ -179,19 +167,11 @@ def source_col_filter(dataset: dict, top_k_dict: dict, k: int = 5):
                         total_index_count[link_id] += link_count + 1
                     else:
                         total_index_count[link_id] += 1
-            # col_pr_id_dict.append(col_pr_id_dict_row)
             filtered_linkage_total.append(filtered_linkage)
-            # total_graph_list_row.append(G)
-            # total_G.add_nodes_from(G.nodes)
-            # total_G.add_edges_from(G.edges)
         total_dict['total_index_count'] = total_index_count
-        # total_dict['table_pr_per_col'] = convert_pr_to_per_col(col_pr_id_dict)
-        # total_dict['total_G'] = total_G
-        # total_dict['total_graph_list'] = total_graph_list_row
         total_dict['filtered_linkage_total'] = filtered_linkage_total
         total_dict['filtered_linkage_total_by_col'] = filtered_linkage_total_by_col
         total_dict['table_idx'] = table_index_dict
-        # total_dict['table_pr_per_row'] = col_pr_id_dict
         total_dict['top_k_index'] = top_k_info
         total_dict['linkage_dict'] = linkage_dict
         total_dict_list[idx] = total_dict
@@ -276,96 +256,55 @@ def top_k_filter(dataset: dict):
     return answer_dict
 
 
-def calculate_max_flow_weight_from_pr(total_dict_list: list):
-    for table in total_dict_list:
-        graph = table['total_G']
-        degree_0 = []
-        for node in graph.nodes():
-            if graph.degree(node) == 0:
-                degree_0.append(node)
-        for node in degree_0:
-            graph.remove_node(node)
-        # pr = nx.pagerank(graph, alpha=0.85)
-        graph.add_node('S')
-        graph.add_node('T')
-        # for node,pr_score in pr.items():
-
-        print('Remove complete')
-
-
-def calculate_max_flow(total_dict_list: dict, dataset: dict, k=3, connect_KB=False):
+def filter_num_date(total_dict_list: dict, dataset: dict, k=3, connect_KB=False, max_flow=False):
     for table_idx, table in tqdm.tqdm(total_dict_list.items(), desc='calculate_max_flow'):
         flow_per_col, ct_per_col = {}, {}
-        # print(table['table_idx']['Q482994'])
         overlap_score = table['total_index_count']
-        for col_idx, col in table['filtered_linkage_total_by_col'].items():
-            # print(col['Q482994'])
-            # s_set, t_set = set(), set()
-            linkage_dict = table['linkage_dict'][col_idx]
-            graph = nx.DiGraph()
-            col_ct_dict = {}
-            for wiki_id, overlap_count in col.items():
-                if wiki_id not in table['table_idx']:
-                    continue
-                entity = table['table_idx'][wiki_id]
-                for edges in entity['edges']:
-                    if 'Q' not in edges[1] or edges[1] == 'Q4167410':
+        if max_flow:
+            for col_idx, col in table['filtered_linkage_total_by_col'].items():
+                linkage_dict = table['linkage_dict'][col_idx]
+                graph = nx.DiGraph()
+                col_ct_dict = {}
+                for wiki_id, overlap_count in col.items():
+                    if wiki_id not in table['table_idx']:
                         continue
-                    else:
-                        if wiki_id not in overlap_score or edges[1] not in overlap_score:
+                    entity = table['table_idx'][wiki_id]
+                    for edges in entity['edges']:
+                        if 'Q' not in edges[1] or edges[1] == 'Q4167410':
                             continue
-                        col_ct_dict[wiki_id] = overlap_score[wiki_id]
-                        # s_set.add(wiki_id)
-                        # t_set.add(edges[1])
-                        graph.add_edge(wiki_id, edges[1])
-            # pr = nx.pagerank(graph, alpha=0.85)
-            # print(overlap_score['Q482994'])
-            graph.add_node('S')
-            graph.add_node('T')
-            # print(pr['Q482994'])
-            for i in linkage_dict['s_set']:
-                if i not in overlap_score:
-                    continue
-                graph.add_edge('S', i, capacity=overlap_score[i])
-                update_dict = {}
-                for succ in graph.successors(i):
-                    # graph[i][succ].update({'capacity': pr[succ]})
-                    update_dict[(i, succ)] = {'capacity': overlap_score[succ]}
-                    # graph.update(edges=[(i, succ, {'capacity': pr[succ]})])
-                    # nx.get_edge_attributes(graph, 'capacity')
-                    # graph.add_edge(i, succ, capacity=pr[succ])
-                nx.set_edge_attributes(graph, update_dict)
-            # print(linkage_dict['t_set'] & linkage_dict['s_set'])
-            for j in linkage_dict['t_set'] - linkage_dict['s_set']:
-                graph.add_edge(j, 'T')
-            # print(list(graph.predecessors('Q482994')))
-            # print(list(graph.successors('Q482994')))
-            flow_value, flow_dict = nx.maximum_flow(graph, 'S', 'T')
-            answer_dict = {}
-            for candidate_type, f_dict in flow_dict.items():
-                if 'T' in f_dict:
-                    if f_dict['T'] > 0:
-                        answer_dict[candidate_type] = f_dict['T']
-            # answer_dict_sorted = sorted(answer_dict.items(), key=lambda x: x[1], reverse=True)
-            answer_dict_sorted = sorted(col_ct_dict.items(), key=lambda x: x[1], reverse=True)
-            # print(table['table_idx']['Q482994'])
-            flow_per_col[col_idx] = {'flow_value': flow_value,
-                                     'flow_dict': flow_dict,
-                                     'candidate_type': answer_dict_sorted,
-                                     # 'candidate_type_top{}'.format(k): answer_dict_sorted[:k],
-                                     # 'S': flow_dict['S']
-                                     }
-            ct_per_col[col_idx] = answer_dict_sorted[:k]
-            edge_label = {}
-            for i in flow_dict.keys():
-                for j in flow_dict[i].keys():
-                    edge_label[(i, j)] = '({}, {})'.format(i, j)
-            # nx.draw_networkx_edge_labels(graph, nx.spring_layout(graph), edge_label)
-            # plt.axis('on')
-            # plt.xticks([])
-            # plt.yticks([])
-            # plt.show()
-            # print('Shown')
+                        else:
+                            if wiki_id not in overlap_score or edges[1] not in overlap_score:
+                                continue
+                            col_ct_dict[wiki_id] = overlap_score[wiki_id]
+                            graph.add_edge(wiki_id, edges[1])
+                graph.add_node('S')
+                graph.add_node('T')
+                for i in linkage_dict['s_set']:
+                    if i not in overlap_score:
+                        continue
+                    graph.add_edge('S', i, capacity=overlap_score[i])
+                    update_dict = {}
+                    for succ in graph.successors(i):
+                        update_dict[(i, succ)] = {'capacity': overlap_score[succ]}
+                    nx.set_edge_attributes(graph, update_dict)
+                for j in linkage_dict['t_set'] - linkage_dict['s_set']:
+                    graph.add_edge(j, 'T')
+                flow_value, flow_dict = nx.maximum_flow(graph, 'S', 'T')
+                answer_dict = {}
+                for candidate_type, f_dict in flow_dict.items():
+                    if 'T' in f_dict:
+                        if f_dict['T'] > 0:
+                            answer_dict[candidate_type] = f_dict['T']
+                answer_dict_sorted = sorted(col_ct_dict.items(), key=lambda x: x[1], reverse=True)
+                flow_per_col[col_idx] = {'flow_value': flow_value,
+                                         'flow_dict': flow_dict,
+                                         'candidate_type': answer_dict_sorted,
+                                         }
+                ct_per_col[col_idx] = answer_dict_sorted[:k]
+                edge_label = {}
+                for i in flow_dict.keys():
+                    for j in flow_dict[i].keys():
+                        edge_label[(i, j)] = '({}, {})'.format(i, j)
         if not connect_KB:
             dataset[table_idx]['candidate_type_top_k'] = ct_per_col
         else:
@@ -416,39 +355,6 @@ def apply_filter(dataset: dict, filter_size: int):
     return dataset
 
 
-def proecess_neighbor(dataset: dict, mode='head', filter_size=25):
-    total_count = 0
-    linked_count = 0
-    for table_idx, table in tqdm.tqdm(dataset.items(), desc='process_neighbor'):
-        total_count += len(table['label'])
-        linked_vec = {}
-        count_dict = {}
-        if 'linked_cell' in table:
-            for row_idx, linked_list_for_row in table['linked_cell'].items():
-                for linked_dict in linked_list_for_row:
-                    if 'match' not in linked_dict:
-                        continue
-                    if not linked_dict['match']:
-                        continue
-                    if linked_dict['col_idx'] not in linked_vec:
-                        linked_vec[linked_dict['col_idx']] = []
-                        count_dict[linked_dict['col_idx']] = 0
-                    if count_dict[linked_dict['col_idx']] == filter_size:
-                        continue
-                    neighbor = look_up_neighbor(linked_dict['match'][0]["_source"])
-                    if neighbor:
-                        linked_vec[linked_dict['col_idx']].append(neighbor)
-                        count_dict[linked_dict['col_idx']] += 1
-                        if mode == 'head':
-                            break
-
-            linked_count += len(linked_vec)
-        table['linked_cell'] = linked_vec
-
-    print('Link count:{}, Total: {}, propotion: {}'.format(linked_count, total_count, linked_count / total_count))
-    return dataset
-
-
 def http_lookup(key: str):
     url = "https://www.wikidata.org/w/api.php"
     if isinstance(key, list):
@@ -459,8 +365,8 @@ def http_lookup(key: str):
     params = {
         'action': 'wbgetentities',
         'format': 'json',
-        'ids': key,  # 搜索文本
-        'language': 'en',  # 查询语言（英文）
+        'ids': key,
+        'language': 'en',
     }
 
     # 访问
@@ -499,7 +405,6 @@ def look_up_neighbor(entity: dict):
         if entity_id == entity['types'] or 'Q' not in entity_id or entity_id == 'Q4167410':
             continue
         else:
-            # edge_id, entity_id = edge[0], edge[1]
             label_edge = kb.search(edge_id)
             label_entity = kb.search(entity_id)
             if not label_edge or not label_entity:
@@ -522,9 +427,10 @@ if __name__ == '__main__':
     start_time = datetime.datetime.now()
     answer_dict = top_k_filter(dataset)
     total_dict_list = source_col_filter(dataset, answer_dict, filter_size)
-    total_dict_list = calculate_max_flow(total_dict_list, dataset, connect_KB=True)
+    total_dict_list = filter_num_date(total_dict_list, dataset, connect_KB=True, max_flow=True)
     if filter_size != None:
         dataset = apply_filter(dataset, filter_size)
+    dataset = proecess_neighbor(dataset, mode='all', filter_size=filter_size)
     end_time = datetime.datetime.now()
     ten_dict = {}
     if filter_size == None:
@@ -533,9 +439,10 @@ if __name__ == '__main__':
         ten_dict[i] = dataset[i]
     if filter_size >= 10000:
         filter_size = 'all'
-    with open('./data_final/processed_dataset_3_{}_{}_filter.json'.format(dataset_name, filter_size), mode='w') as file:
+    with open('./data_final/processed_dataset_3_{}_{}.json'.format(dataset_name, filter_size), mode='w') as file:
         file.write(json.dumps(ten_dict, indent=4))
-    with open('./data_final/processed_dataset_{}_{}_no_filter.json'.format(dataset_name, filter_size), mode='w') as file:
+    with open('./data_final/processed_dataset_{}_{}.json'.format(dataset_name, filter_size),
+              mode='w') as file:
         file.write(json.dumps(dataset, indent=4))
     print('Time cost: {}'.format(end_time - start_time))
     print('Finish')

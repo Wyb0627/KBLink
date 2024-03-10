@@ -60,7 +60,7 @@ class KBLink(nn.Module):
             grad = True
         else:
             grad = False
-        self.sigma = nn.Parameter(0.5 * torch.ones(2), requires_grad=grad)
+        self.sigma = nn.Parameter(torch.ones(2), requires_grad=grad)
         self.log_softmax = nn.LogSoftmax(dim=-1)
         # self.dropout = nn.Dropout(0.1)
 
@@ -221,8 +221,9 @@ class KBLink(nn.Module):
             # total_loss = dmlm_loss + torch.mean(classfi_loss_adaptive, dim=-1)
 
             dmlm_loss = self.dmlm_loss(softmax_gt, softmax_contextual)
-            total_loss = dmlm_loss / 2 * self.sigma[0].exp() + classfi_loss / 2 * self.sigma[1].exp() + 0.5 * (
-                    self.sigma[0] + self.sigma[1])
+            total_loss = (dmlm_loss / (2 * self.sigma[0].exp())
+                          + classfi_loss / (2 * self.sigma[1].exp())
+                          + 0.5 * (self.sigma[0] + self.sigma[1]))
             # print(total_loss)
             # print(classfi_loss_adaptive)
             # print(dmlm_loss)
